@@ -17,7 +17,6 @@ import com.reactnativepagerview.event.PageScrollEvent
 import com.reactnativepagerview.event.PageScrollStateChangedEvent
 import com.reactnativepagerview.event.PageSelectedEvent
 
-
 class PagerViewViewManager : ViewGroupManager<NestedScrollableHost>() {
     private lateinit var eventDispatcher: EventDispatcher
 
@@ -30,6 +29,8 @@ class PagerViewViewManager : ViewGroupManager<NestedScrollableHost>() {
         host.id = View.generateViewId()
         host.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         host.isSaveEnabled = false
+        host.lastIndex = 0
+
         val vp = ViewPager2(reactContext)
         vp.adapter = ViewPagerAdapter()
         //https://github.com/callstack/react-native-viewpager/issues/183
@@ -46,8 +47,18 @@ class PagerViewViewManager : ViewGroupManager<NestedScrollableHost>() {
 
                 override fun onPageSelected(position: Int) {
                     super.onPageSelected(position)
-                    eventDispatcher.dispatchEvent(
+
+                    if (host.measuredWidth === 0 && host.measuredHeight === 0 && host.lastIndex !== position) {
+                        // FOR: 1. When host layout is 0, vp will fire onPageSelected(position) unexpectedly, here to reset to the lastIndex
+                        // FOR: 2. When COMMAND_SET_PAGE, COMMAND_SET_PAGE_WITHOUT_ANIMATION  fire, host layout is 0 , here do it normally
+                        PagerViewViewManagerImpl.setCurrentItem(vp, host.lastIndex, false)
+                    } else {
+                        eventDispatcher.dispatchEvent(
                             PageSelectedEvent(host.id, position))
+                        host.lastIndex = position
+                    }
+
+
                 }
 
                 override fun onPageScrollStateChanged(state: Int) {
@@ -63,6 +74,7 @@ class PagerViewViewManager : ViewGroupManager<NestedScrollableHost>() {
                 }
             })
 
+            host.lastIndex = vp.currentItem
             eventDispatcher.dispatchEvent(PageSelectedEvent(host.id, vp.currentItem))
         }
         host.addView(vp)
@@ -145,6 +157,7 @@ class PagerViewViewManager : ViewGroupManager<NestedScrollableHost>() {
                 val canScroll = childCount != null && childCount > 0 && pageIndex >= 0 && pageIndex < childCount
                 if (canScroll) {
                     val scrollWithAnimation = commandId == COMMAND_SET_PAGE
+                    root.lastIndex = pageIndex
                     PagerViewViewManagerImpl.setCurrentItem(view, pageIndex, scrollWithAnimation)
                     eventDispatcher.dispatchEvent(PageSelectedEvent(root.id, pageIndex))
                 }

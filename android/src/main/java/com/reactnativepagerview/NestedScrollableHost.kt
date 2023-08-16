@@ -10,7 +10,6 @@ import androidx.viewpager2.widget.ViewPager2
 import androidx.viewpager2.widget.ViewPager2.ORIENTATION_HORIZONTAL
 import kotlin.math.absoluteValue
 import kotlin.math.sign
-
 /**
  * Layout to wrap a scrollable component inside a ViewPager2. Provided as a solution to the problem
  * where pages of ViewPager2 have nested scrollable elements that scroll in the same direction as
@@ -41,6 +40,18 @@ class NestedScrollableHost : FrameLayout {
   init {
     touchSlop = ViewConfiguration.get(context).scaledTouchSlop
   }
+
+  private var measuredWidth = 0
+  private var measuredHeight = 0
+  public var lastIndex = 0
+
+
+  override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+    super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+    measuredWidth = MeasureSpec.getSize(widthMeasureSpec)
+    measuredHeight = MeasureSpec.getSize(heightMeasureSpec)
+  }
+
 
   private fun canChildScroll(orientation: Int, delta: Float): Boolean {
     val direction = -delta.sign.toInt()
